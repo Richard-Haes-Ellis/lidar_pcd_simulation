@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="lidar_model">
+
+	<!-- Import Rviz colors -->
+	<xacro:include filename="$(find lidar_pcd_simulator)/urdf/materials.xacro" />
+
+	<link name="container_chassis">
+		<origin xyz="0 0 0" rpy="0 0 0" />
+		<inertial>
+			<mass value="100" />
+			<inertia ixx="10" ixy="0" ixz="0" iyy="10" iyz="0" izz="10" />
+		</inertial>
+		<collision name="container_collision">
+			<geometry>
+				<mesh filename='model://container/Shipping_Container_40ft.dae' />
+			</geometry>
+		</collision>
+		<visual name="container_visual">
+			<geometry>
+				<mesh filename='model://container/Shipping_Container_40ft.dae' />
+			</geometry>
+			<material name="blue" />
+		</visual>
+	</link>
+
+</robot>

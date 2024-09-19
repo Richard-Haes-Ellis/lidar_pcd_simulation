@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<robot name="grid_model" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!-- Arguments to define the number of boxes and spacing -->
+    <xacro:arg name="rows" default="3"/> <!-- Number of rows -->
+    <xacro:arg name="cols" default="3"/> <!-- Number of columns -->
+    <xacro:arg name="spacing" default="0.5"/> <!-- Spacing between boxes -->
+
+    <!-- Import the original box xacro file -->
+    <xacro:include filename="$(find lidar_pcd_simulator)/urdf/box.xacro" />
+
+    <!-- Macro to generate a box -->
+    <xacro:macro name="generate_box" params="name x y z">
+        <!-- Call the original boxes xacro file to generate the box -->
+        <xacro:boxes name="${name}" x="${x}" y="${y}" z="${z}"/>
+    </xacro:macro>
+
+    <!-- Macro to create the grid recursively -->
+    <xacro:macro name="create_grid" params="row col">
+        <!-- Calculate the box name and position -->
+        <xacro:property name="box_name" value="box_${row}_${col}"/>
+        <xacro:property name="x_pos" value="${col * spacing}"/>
+        <xacro:property name="y_pos" value="${row * spacing}"/>
+
+        <!-- Call the generate_box macro to create the box -->
+        <xacro:generate_box name="${box_name}" x="${x_pos}" y="${y_pos}" z="0"/>
+
+        <!-- Move to the next column or row recursively -->
+        <xacro:if value="${col + 1 < cols}">
+            <xacro:create_grid row="${row}" col="${col + 1}"/>
+        </xacro:if>
+        <xacro:if value="${col + 1 == cols and row + 1 < rows}">
+            <xacro:create_grid row="${row + 1}" col="0"/>
+        </xacro:if>
+    </xacro:macro>
+
+    <!-- Start creating the grid from the first row and column -->
+    <xacro:create_grid row="0" col="0"/>
+
+</robot>

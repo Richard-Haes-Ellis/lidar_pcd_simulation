@@ -1,0 +1,282 @@
+<?xml version="1.0"?>
+<sdf version="1.9" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:property name="PI" value="3.14159265359"/>
+    <xacro:property name="lidar_height" value="2.35"/>
+
+    <xacro:macro name='spawn_pallet' params='name type x y z roll pitch yaw'>
+        <model name="pallet100_${name}">
+            <static>true</static>
+            <pose>${x} ${y} ${z} ${roll} ${pitch} ${yaw}</pose>
+            <link name='pallet100'>
+                <collision name='collision'>
+                    <geometry>
+                        <mesh>
+                            <uri>model://pallet_${type}/pallet_${type}.dae</uri>
+                        </mesh>
+                    </geometry>
+                </collision>
+                <visual name='visual'>
+                    <geometry>
+                        <mesh>
+                            <uri>model://pallet_${type}/pallet_${type}.dae</uri>
+                        </mesh>
+                    </geometry>
+                </visual>
+            </link>
+        </model>
+    </xacro:macro>
+
+    <world name='lidar_world'>
+
+        <!-- Global RGL scene manager required to upload meshes to GPU -->
+        <!-- <plugin filename="RGLServerPluginManager" name="rgl::RGLServerPluginManager" /> -->
+
+        <!-- Physics and Sensors Plugins -->
+        <plugin name='ignition::gazebo::systems::Physics' filename='ignition-gazebo-physics-system' />
+        <plugin name='ignition::gazebo::systems::Sensors' filename='ignition-gazebo-sensors-system'>
+            <render_engine>ogre2</render_engine>
+        </plugin>
+        <plugin name='ignition::gazebo::systems::UserCommands' filename='ignition-gazebo-user-commands-system' />
+        <plugin name='ignition::gazebo::systems::SceneBroadcaster' filename='ignition-gazebo-scene-broadcaster-system' />
+
+        <!-- Scene settings -->
+        <scene>
+            <grid>false</grid>
+            <ambient>0.4 0.4 0.4 1</ambient>
+            <background>0.7 0.7 0.7 1</background>
+            <shadows>true</shadows>
+        </scene>
+
+        <gravity>0 0 -9.8</gravity>
+        <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+        <atmosphere type='adiabatic' />
+
+        <physics type='ogre2'>
+            <max_step_size>0.001</max_step_size>
+            <real_time_factor>1</real_time_factor>
+            <real_time_update_rate>1000</real_time_update_rate>
+        </physics>
+
+        <!-- Ground Plane Model -->
+        <model name='ground_plane'>
+            <static>true</static>
+            <link name='link'>
+                <collision name='collision'>
+                    <geometry>
+                        <plane>
+                            <normal>0 0 1</normal>
+                            <size>100 100</size>
+                        </plane>
+                    </geometry>
+                    <surface>
+                        <friction>
+                            <ode/>
+                        </friction>
+                        <bounce/>
+                        <contact/>
+                    </surface>
+                </collision>
+                <visual name='visual'>
+                    <laser_retro>0</laser_retro>
+                    <geometry>
+                        <plane>
+                            <normal>0 0 1</normal>
+                            <size>100 100</size>
+                        </plane>
+                    </geometry>
+                    <material>
+                        <ambient>0.8 0.8 0.8 1</ambient>
+                        <diffuse>0.7 0.99 0.7 1</diffuse>
+                        <specular>0.8 0.8 0.8 1</specular>
+                    </material>
+                </visual>
+                <pose>0 0 0 0 0 0</pose>
+                <inertial>
+                    <pose>0 0 0 0 0 0</pose>
+                    <mass>1</mass>
+                    <inertia>
+                        <ixx>1</ixx>
+                        <ixy>0</ixy>
+                        <ixz>0</ixz>
+                        <iyy>1</iyy>
+                        <iyz>0</iyz>
+                        <izz>1</izz>
+                    </inertia>
+                </inertial>
+                <enable_wind>false</enable_wind>
+            </link>
+            <pose>0 0 0 0 0 0</pose>
+            <self_collide>false</self_collide>
+        </model>
+
+
+        <!-- Model with Lidar Sensor -->
+        <model name='lidar_model'>
+            <static>true</static> <!-- Set to false to allow movement -->
+            <pose>0 -1 0 0 0 0</pose> <!-- Position the model at the origin -->
+
+
+            <!-- Chassis Link -->
+            <link name='chassis_link'>
+                <pose>0 0 ${lidar_height/2} 0 -0 0</pose> <!-- Position the chassis 0.5 meters above the ground -->
+                <collision name='collision'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>${lidar_height}</length>
+                        </cylinder>
+                    </geometry>
+                </collision>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>${lidar_height}</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <ambient>0.8 0.8 0.8 1</ambient>
+                        <diffuse>0.7 0.99 0.7 1</diffuse>
+                        <specular>0.8 0.8 0.8 1</specular>
+                    </material>
+                </visual>               
+            </link>
+
+            <link name='lidar_link'>
+                <pose>0 0 ${lidar_height+0.05} 0 -0 1.570796327</pose> <!-- Position the lidar 2 meters above the ground -->
+                <sensor name='lidar' type='gpu_lidar'>
+                    <topic>lidar</topic>
+                    <update_rate>10</update_rate>
+                    <lidar>
+                        <scan>
+                            <horizontal>
+                                <samples>640</samples>
+                                <resolution>1</resolution>
+                                <min_angle>${-PI/2}</min_angle>
+                                <max_angle>${PI/2}</max_angle>
+                            </horizontal>
+                            <vertical>
+                                <samples>250</samples>
+                                <resolution>1</resolution>
+                                <!-- <min_angle>-0.7854</min_angle> -->
+                                <min_angle>${-PI/2}</min_angle>
+                                <!-- <max_angle>0.7854</max_angle> -->
+                                <max_angle>${PI/2}</max_angle>
+                            </vertical>
+                        </scan>
+                        <range>
+                            <min>0.08</min>
+                            <max>35.0</max>
+                            <resolution>0.02</resolution>
+                        </range>
+                    </lidar>
+                    <always_on>1</always_on>
+                    <visualize>true</visualize>
+                </sensor>
+                <collision name='lidar_collision'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.1</radius>
+                            <length>0.1</length>
+                        </cylinder>
+                    </geometry>
+                </collision>
+                <visual name='lidar_visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.1</radius>
+                            <length>0.1</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <ambient>1 0 0 1</ambient>
+                        <diffuse>1 0 0 1</diffuse>
+                        <specular>1 0 0 1</specular>
+                    </material>
+                </visual>
+            </link>
+
+
+            <!-- Joint -->
+             <joint name='joint' type='fixed'>
+                <parent>chassis_link</parent>
+                <child>lidar_link</child>
+                <pose>0 0 0 0 -0 0</pose>
+            </joint>
+
+        </model>
+
+        <!-- Container Model -->
+        <model name="container">
+            <static>true</static>
+            <pose>0 7 2.8 0 0 0</pose>
+            <link name='container'>
+                <collision name='collision'>
+                    <geometry>
+                        <mesh>
+                            <uri>model://container/Shipping_Container_40ft.dae</uri>
+                        </mesh>
+                    </geometry>
+                </collision>
+                <visual name='visual'>
+                    <geometry>
+                        <mesh>
+                            <uri>model://container/Shipping_Container_40ft.dae</uri>
+                        </mesh>
+                    </geometry>
+                </visual>
+            </link>
+
+        </model>
+
+        <!-- Directional Light -->
+        <light name='sun' type='directional'>
+            <pose>100 100 100 0 0 0</pose>
+            <cast_shadows>false</cast_shadows>
+            <intensity>1</intensity>
+            <direction>-0.5 0.1 -0.9</direction>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.2 0.2 0.2 1</specular>
+            <attenuation>
+                <range>1000</range>
+                <linear>0.01</linear>
+                <constant>0.9</constant>
+                <quadratic>0.001</quadratic>
+            </attenuation>
+            <spot>
+                <inner_angle>0</inner_angle>
+                <outer_angle>0</outer_angle>
+                <falloff>0</falloff>
+            </spot>
+        </light>
+
+        <!-- Spawn Pallets left side -->
+        <xacro:spawn_pallet name='L_1' type="100"   x="-0.5" y="${12.35 - 0*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_2' type="100"   x="-0.5" y="${12.35 - 1*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_3' type="100"   x="-0.5" y="${12.35 - 2*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_4' type="100"   x="-0.5" y="${12.35 - 3*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_5' type="100"   x="-0.5" y="${12.35 - 4*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_6' type="50"    x="-0.5" y="${12.35 - 5*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_7' type="50"    x="-0.5" y="${12.35 - 6*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_8' type="50"    x="-0.5" y="${12.35 - 7*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+        <xacro:spawn_pallet name='L_9' type="10"    x="-0.5" y="${12.35 - 8*1.25} " z="0.13" roll="0" pitch="0" yaw="0"/>
+
+
+        <!-- Spawn Pallets right side -->
+        <xacro:spawn_pallet name='R_1'  type="100"  x="0.5" y="${12.35 - 0*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_2'  type="100"  x="0.5" y="${12.35 - 1*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_3'  type="100"  x="0.5" y="${12.35 - 2*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_4'  type="100"  x="0.5" y="${12.35 - 3*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_5'  type="100"  x="0.5" y="${12.35 - 4*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_6'  type="100"  x="0.5" y="${12.35 - 5*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_7'  type="100"  x="0.5" y="${12.35 - 6*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_8'  type="100"  x="0.5" y="${12.35 - 7*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_10' type="100"  x="0.5" y="${12.35 - 8*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_11' type="50"   x="0.5" y="${12.35 - 9*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_12' type="50"   x="0.5" y="${12.35 - 10*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        <xacro:spawn_pallet name='R_13' type="10"   x="0.5" y="${12.35 - 11*0.85} " z="0.13" roll="0" pitch="0" yaw="${PI/2}"/>
+        
+
+    </world>
+</sdf>
